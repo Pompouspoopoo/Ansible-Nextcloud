@@ -28,7 +28,7 @@
     - name: Install aptitude
       apt: name=aptitude state=present
 
-    - name: Unconditional reboot after update & upgrade No.2
+    - name: Unconditional reboot after update & upgrade No.2 - needed for snapd to work properly
       reboot: 
 
     - name: Install Nextcloud
