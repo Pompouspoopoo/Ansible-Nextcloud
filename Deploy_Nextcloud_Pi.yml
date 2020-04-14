@@ -1,0 +1,127 @@
+---
+- hosts: NextcloudPi
+  remote_user: pi
+  become: True
+  become_method: sudo
+
+  tasks:
+    - name: Update packages
+      apt:
+        update_cache: yes
+        upgrade: yes
+
+    - name: Unconditional reboot after update & upgrade No.1
+      reboot: 
+
+    - name: Install software-properties-common
+      apt: name=software-properties-common state=present
+
+    - name: Install gpg
+      apt: name=gpg state=present
+
+    - name: Install curl
+      apt: name=curl state=present
+
+    - name: Install snapd
+      apt: name=snapd
+
+    - name: Install aptitude
+      apt: name=aptitude state=present
+
+    - name: Unconditional reboot after update & upgrade No.2
+      reboot: 
+
+    - name: Install Nextcloud
+      snap: name=nextcloud state=present
+
+    - name: Nextcloud - Connect External Media
+      command: snap connect nextcloud:removable-media
+      become: yes
+
+    - name: Mount External HDD 1
+      file:
+        path: /mnt/usb
+        state: directory
+        mode: '0755'
+
+    - name: Mount External HDD 2
+      mount:
+        path: /mnt/usb
+        src: /dev/sda1
+        fstype: ext4
+        state: present
+
+    - name: Install Firewall
+      apt: name=ufw state=present
+
+    - name: Deny Incoming UFW
+      shell: ufw default deny incoming
+      become: yes
+
+    - name: Allow UFW port
+      ufw:
+        rule: allow
+        port: 22
+
+    - name: Allow UFW port
+      ufw:
+        rule: allow
+        port: 80
+
+    - name: Allow UFW port
+      ufw:
+        rule: allow
+        port: 443
+
+    - name: Allow UFW port
+      ufw:
+        rule: allow
+        port: 9993
+
+    - name: Allow UFW port
+      ufw:
+        rule: allow
+        port: 19999
+
+    - name: Install Fail2ban
+      apt: name=fail2ban state=present
+
+    - name: Install netdata
+      apt: name=netdata state=present
+
+    - name: Netdata - disable reporting anonymous data
+      file:
+        path: /etc/netdata/.opt-out-from-anonymous-statistics
+        state: touch
+        mode: u=rw,g=r,o=r
+
+    - name: Start Netdata service
+      service:
+        name: netdata
+        enabled: yes
+        state: started
+
+    - name: Install zerotier
+      shell: curl -s 'https://raw.githubusercontent.com/zerotier/ZeroTierOne/master/doc/contact%40zerotier.com.gpg' | gpg --import && if z=$(curl -s 'https://install.zerotier.com/' | gpg); then echo "$z" | sudo bash; fi
+
+    - name: Start zerotier-one service
+      service:
+        name: zerotier-one
+        enabled: yes
+        state: started
+
+    - name: Add Pi to Zerotier node
+      command: zerotier-cli join XXXXXXX
+      become: yes
+
+    - name: Enable UFW service
+      ufw:
+        state: enabled
+        logging: on
+
+    - name: Start Fail2ban service
+      service:
+        name: fail2ban
+        enabled: yes
+        state: started
+
